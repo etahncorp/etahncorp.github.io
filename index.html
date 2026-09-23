@@ -1,22 +1,368 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>My Website</title>
+  <title>ETAHNCORP Archives</title>
+  <link rel="icon" type="image/png" href="etahncorp-logo.png">
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 700px;
-      margin: 80px auto;
-      padding: 20px;
-      background: #f4f6fa;
-      color: #222;
-    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #0c0c0c; color: #ccc; font: 16px/1.15 Consolas, 'Lucida Console', monospace; }
+    main { min-height: 100vh; padding: 38px 8px 16px; }
+    .titlebar { position: absolute; top: 0; left: 0; width: 100%; height: 30px; display: flex; align-items: center; justify-content: space-between; background: #fff; color: #000; padding-left: 10px; font: 12px 'Segoe UI', sans-serif; }
+    .titlebar .caption { display: flex; align-items: center; gap: 7px; }
+    .cmd-icon { background: #111; color: white; border: 1px solid #888; font: 10px Consolas, monospace; padding: 0 2px; }
+    .window-controls { display: flex; height: 30px; align-items: center; }
+    .window-controls span { width: 46px; text-align: center; font: 16px 'Segoe UI', sans-serif; }
+    p { margin: 0; }
+    .boot { margin-bottom: 20px; }
+    .muted { color: inherit; }
+    form { margin: 18px 0 0; }
+    label { display: flex; align-items: baseline; gap: 1ch; }
+    input { flex: 1; min-width: 0; max-width: 400px; border: 0; border-radius: 0; padding: 0; margin: 0; background: transparent; color: inherit; caret-color: #ccc; font: inherit; outline: none; }
+    input:focus-visible { box-shadow: none; }
+    button, .launch { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-decoration: none; }
+    button:hover, .launch:hover { background: #ccc; color: #0c0c0c; }
+    button:focus-visible, a:focus-visible { outline: 1px dotted #ccc; outline-offset: 2px; }
+    #loginForm button { margin-top: 18px; }
+    #error:empty { display: none; }
+    #error { margin-top: 18px; }
+    #records { margin: 18px 0; }
+    .record { display: flex; align-items: baseline; gap: 3ch; min-height: 20px; }
+    .record small { font: inherit; white-space: nowrap; }
+    .record h2 { font: inherit; margin: 0; }
+    .record p { display: none; }
+    .launch { white-space: nowrap; }
+    #logout { margin-top: 18px; }
+    [hidden] { display: none !important; }
+    #portal { position: fixed; inset: 0; background: #f4f5f6; color: #20252a; font: 14px 'Segoe UI', sans-serif; display: flex; flex-direction: column; }
+    .sheet-title { background: #224d65; color: white; padding: 12px 18px; display: flex; align-items: center; gap: 10px; }
+    .sheet-title img { width: 24px; height: 24px; }
+    .sheet-toolbar { padding: 12px 18px; border-bottom: 1px solid #bac3ca; display: flex; justify-content: space-between; align-items: center; gap: 15px; }
+    #portal #logout { margin: 0; padding: 5px 12px; border: 1px solid #abb8c2; }
+    .formula-bar { background: white; padding: 8px 18px; border-bottom: 1px solid #bac3ca; color: #57636d; }
+    .search-bar { padding: 10px 18px; border-bottom: 1px solid #bac3ca; }
+    #gameSearch { background: white; color: #20252a; border: 1px solid #9daab4; padding: 7px 10px; font: inherit; caret-color: #20252a; }
+    #gameSearch:focus-visible { outline: 2px solid #224d65; }
+    #searchStatus { font-size: 12px; margin-top: 5px; }
+    .sheet-grid { flex: 1; overflow: auto; background: white; }
+    table { border-collapse: collapse; width: 100%; min-width: 640px; }
+    th, td { border: 1px solid #d4d9dd; padding: 9px 12px; text-align: left; height: 38px; }
+    thead th { background: #e9edef; font-weight: 600; }
+    .column-letters th { text-align: center; font-weight: normal; color: #616b73; height: 26px; padding: 4px; }
+    tbody th { width: 45px; background: #eef1f3; text-align: center; font-weight: normal; color: #616b73; }
+    #portal #records { margin: 0; }
+    #portal .launch { display: inline-block; background: #224d65; color: white; padding: 5px 18px; border-radius: 2px; }
+    #portal .launch:hover { background: #316f92; }
+    #portal a:focus-visible, #portal button:focus-visible { outline: 2px solid #224d65; }
+    .locked td { background: #fafafa; color: #737980; font: 13px Consolas, monospace; }
+    .sheet-footer { padding: 10px 18px; border-top: 1px solid #bac3ca; background: #e9edef; }
+    #desktop { position: fixed; inset: 0; background: #18252f; color: white; font: 13px 'Segoe UI', sans-serif; padding: 28px; }
+    .desktop-brand { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; color: #adc0cd; letter-spacing: 5px; }
+    .desktop-brand img { width: 170px; height: 170px; object-fit: contain; margin-bottom: 20px; }
+    #openArchives { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; width: 105px; padding: 14px 4px; font: inherit; color: white; }
+    #openArchives:hover, #openArchives:focus-visible { background: #ffffff18; outline: 1px solid #ffffff60; }
+    .exe-icon { background: #0c0c0c; border: 2px solid #ccc; border-top: 8px solid #eee; width: 48px; height: 40px; text-align: left; padding: 3px; font: 16px Consolas, monospace; }
+    #desktop.loading, #desktop.loading * { cursor: progress; }
+    #openArchives:focus { background: #ffffff18; outline: 1px solid #ffffff60; }
+    .taskbar { position: absolute; bottom: 0; left: 0; right: 0; height: 36px; padding: 10px 16px; background: #10171e; display: flex; justify-content: space-between; }
+    @media (max-width: 500px) { body { font-size: 14px; } .record { gap: 1ch; flex-wrap: wrap; margin-bottom: 8px; } }
   </style>
 </head>
 <body>
-  <h1>Welcome to my website!</h1>
-  <p>I'm . This is my first website.</p>
+  <section id="desktop" aria-label="ETAHNCORP desktop">
+    <div class="desktop-brand"><img src="etahncorp-logo.png" alt=""><span>ETAHN CORPORATION</span></div>
+    <button id="openArchives" type="button" aria-label="Open archives.exe" aria-describedby="launchStatus"><span class="exe-icon" aria-hidden="true">&gt;_</span><span>archives.exe</span></button>
+    <div class="taskbar"><span>ETAHNCORP WORKSTATION</span><span id="launchStatus" role="status">Double-click archives.exe to open</span></div>
+  </section>
+  <main id="terminal" hidden>
+    <div class="titlebar"><span class="caption"><img src="etahncorp-logo.png" alt="ETAHNCORP" width="20" height="20">Command Prompt - ETAHNCORP Archives</span><span class="window-controls" aria-hidden="true"><span>−</span><span>□</span><span>×</span></span></div>
+    <p class="boot">ETAHNCORP ARCHIVES [Version 1.0.0]<br>(c) ETAHN CORPORATION. All rights reserved.</p>
+
+    <section id="login">
+      <p>C:\ETAHNCORP&gt; archives.exe<br><br>ETAHNCORP Archives<br>Sign in to continue.</p>
+      <form id="loginForm">
+        <label>User ID: <input id="userId" autocomplete="username" spellcheck="false" autocapitalize="none" required></label>
+        <label>Password: <input id="password" type="password" autocomplete="current-password" required></label>
+        <button type="submit">[Enter] Sign in</button>
+        <p id="error" role="alert"></p>
+      </form>
+
+    </section>
+  </main>
+  <section id="portal" hidden aria-label="ETAHNCORP game spreadsheet">
+    <div class="sheet-title"><img src="etahncorp-logo.png" alt=""><strong>ETAHNCORP ARCHIVES — Game Register</strong></div>
+    <div class="sheet-toolbar"><p id="welcome"></p><button id="logout" type="button">Sign out</button></div>
+    <div class="formula-bar">A1 &nbsp; │ &nbsp; fx &nbsp; Game archive directory</div>
+    <div class="search-bar"><label for="gameSearch">Search <input id="gameSearch" type="search" placeholder="Game name, access level, or description" autocomplete="off"></label><p id="searchStatus" role="status"></p></div>
+    <div class="sheet-grid">
+      <table aria-label="Games and clearance levels">
+        <thead><tr class="column-letters" aria-hidden="true"><th></th><th>A</th><th>B</th><th>C</th><th>D</th></tr>
+        <tr><th scope="col">#</th><th scope="col">Game name</th><th scope="col">Access level</th><th scope="col">Description</th><th scope="col">Play</th></tr></thead>
+        <tbody id="records"></tbody>
+      </table>
+    </div>
+    <div class="sheet-footer">Game Register &nbsp; │ &nbsp; ETAHN CORPORATION</div>
+  </section>
+  <script>
+    // EDIT THIS LIST: change the titles, descriptions, and game URLs.
+    // URLs can be your own HTML files or full https:// links to games.
+    const accessLevels = {
+      1: 'General Access',
+      2: 'Corporate Access',
+      3: 'Quality Assurance',
+      4: 'Executive Access'
+    };
+    const games = [
+      { id: 'game1', title: 'Project Echo', level: 1, accessLevel: accessLevels[1], description: 'Open the first game file.', url: 'game1.html' },
+      { id: 'game2', title: 'Night Shift', level: 2, accessLevel: accessLevels[2], description: 'Open the second game file.', url: 'game2.html' },
+      { id: 'game3', title: 'The Missing Record', level: 3, accessLevel: accessLevels[3], description: 'Open the third game file.', url: 'game3.html' }
+    ];
+
+    // EDIT THIS LIST: each person gets a username, pretend password,
+    // and a list of game IDs they can see. IDs/passwords are case-sensitive.
+    // This is NOT secure authentication: anyone can read this source code.
+    const users = [
+      { id: 'general', name: 'General', password: 'general01', clearance: 1 },
+      { id: 'corporate', name: 'Corporate', password: 'corporate02', clearance: 2 },
+      { id: 'qa', name: 'QA', password: 'quality03', clearance: 3 },
+      { id: 'executive', name: 'Executive', password: 'executive04', clearance: 4 },
+      { id: 'ethan', name: 'Ethan', clearance: 4, password: 'archive01', games: ['game1', 'game2', 'game3'] },
+      { id: 'alex', name: 'Alex', password: 'echo02', games: ['game1'] },
+      { id: 'sam', name: 'Sam', password: 'night03', games: ['game2', 'game3'] }
+    ];
+
+    const login = document.getElementById('login');
+    const portal = document.getElementById('portal');
+    const form = document.getElementById('loginForm');
+    const records = document.getElementById('records');
+    document.getElementById('gameSearch').addEventListener('input', (event) => {
+      const query = event.target.value.trim().toLowerCase();
+      let count = 0;
+      for (const row of records.rows) {
+        // Search only displayed fields, never the names behind locked rows.
+        const displayed = Array.from(row.querySelectorAll('td')).slice(0, 3)
+          .map((cell) => cell.textContent).join(' ').toLowerCase();
+        row.hidden = !displayed.includes(query);
+        if (!row.hidden) count++;
+      }
+      document.getElementById('searchStatus').textContent = query
+        ? (count ? `${count} matching row${count === 1 ? '' : 's'}` : 'No matching games.') : '';
+    });
+
+    // Synthesized locally: no audio files or downloads required.
+    let typingAudio;
+    let clickBuffer;
+    function enableTypingAudio() {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+      try {
+        if (!typingAudio) {
+          typingAudio = new AudioContext();
+          clickBuffer = typingAudio.createBuffer(1, Math.ceil(typingAudio.sampleRate * 0.025), typingAudio.sampleRate);
+          const samples = clickBuffer.getChannelData(0);
+          for (let i = 0; i < samples.length; i++) {
+            samples[i] = (Math.random() * 2 - 1) * Math.exp(-i / (typingAudio.sampleRate * 0.004));
+          }
+        }
+        if (typingAudio.state === 'suspended') return typingAudio.resume().catch(() => {});
+      } catch { /* Audio support must never block signing in. */ }
+    }
+    function playTypingClick() {
+      if (!typingAudio || typingAudio.state !== 'running' || !clickBuffer) return;
+      const source = typingAudio.createBufferSource();
+      const gain = typingAudio.createGain();
+      source.buffer = clickBuffer;
+      source.playbackRate.value = 0.9 + Math.random() * 0.2;
+      gain.gain.value = 0.12;
+      source.connect(gain);
+      gain.connect(typingAudio.destination);
+      source.onended = () => { source.disconnect(); gain.disconnect(); };
+      source.start();
+    }
+    document.addEventListener('pointerdown', enableTypingAudio, true);
+    document.addEventListener('keydown', enableTypingAudio, true);
+    for (const input of form.querySelectorAll('input')) {
+      input.addEventListener('input', (event) => {
+        if (event.isComposing) return;
+        if (event.inputType?.startsWith('insert')) {
+          enableTypingAudio();
+          playTypingClick();
+        }
+      });
+    }
+
+    // Reveal terminal text once on page load. Enter or any click finishes it.
+    const startupText = [];
+    for (const section of [document.querySelector('.boot'), login]) {
+      const walker = document.createTreeWalker(section, NodeFilter.SHOW_TEXT);
+      while (walker.nextNode()) {
+        const node = walker.currentNode;
+        if (node.textContent.trim()) startupText.push({ node, text: node.textContent });
+      }
+    }
+    let startupTimer;
+    let starting = true;
+    let textIndex = 0;
+    let characterIndex = 0;
+    function finishStartup() {
+      if (!starting) return;
+      starting = false;
+      clearTimeout(startupTimer);
+      for (const entry of startupText) entry.node.textContent = entry.text;
+      form.inert = false;
+      document.removeEventListener('keydown', skipStartup, true);
+      document.removeEventListener('click', skipStartup, true);
+      document.getElementById('userId').focus();
+    }
+    function skipStartup(event) {
+      if (event.type === 'keydown' && (event.key !== 'Enter' || event.repeat)) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      finishStartup();
+    }
+    function typeNextCharacter() {
+      if (!starting) return;
+      const entry = startupText[textIndex];
+      entry.node.textContent = entry.text.slice(0, ++characterIndex);
+      if (/\S/.test(entry.text[characterIndex - 1])) playTypingClick();
+      if (characterIndex === entry.text.length) {
+        textIndex++;
+        characterIndex = 0;
+      }
+      if (textIndex === startupText.length) finishStartup();
+      else startupTimer = setTimeout(typeNextCharacter, 22);
+    }
+    let launching = false;
+    async function launchArchives() {
+      if (launching) return;
+      launching = true;
+      document.getElementById('openArchives').disabled = true;
+      document.getElementById('desktop').classList.add('loading');
+      document.getElementById('launchStatus').textContent = 'Starting archives.exe...';
+      // This explicit launch gesture unlocks audio before the first character.
+      await Promise.all([
+        Promise.race([
+          Promise.resolve(enableTypingAudio()),
+          new Promise((resolve) => setTimeout(resolve, 500))
+        ]),
+        new Promise((resolve) => setTimeout(resolve, 900))
+      ]);
+      document.getElementById('desktop').hidden = true;
+      document.getElementById('desktop').classList.remove('loading');
+      document.getElementById('terminal').hidden = false;
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        finishStartup();
+      } else {
+        form.inert = true;
+        for (const entry of startupText) entry.node.textContent = '';
+        document.addEventListener('keydown', skipStartup, true);
+        document.addEventListener('click', skipStartup, true);
+        typeNextCharacter();
+      }
+    }
+    document.getElementById('openArchives').addEventListener('dblclick', launchArchives);
+    document.getElementById('openArchives').addEventListener('keydown', (event) => {
+      if ((event.key === 'Enter' || event.key === ' ') && !event.repeat) {
+        event.preventDefault();
+        launchArchives();
+      }
+    });
+
+    let signingIn = false;
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (signingIn) return;
+      const user = users.find((entry) =>
+        entry.id === document.getElementById('userId').value.trim() &&
+        entry.password === document.getElementById('password').value
+      );
+      if (!user) {
+        document.getElementById('error').textContent = 'ID or game password not recognized.';
+        return;
+      }
+      document.getElementById('error').textContent = '';
+      document.getElementById('password').value = '';
+      signingIn = true;
+      form.inert = true;
+      document.getElementById('terminal').hidden = true;
+      const desktop = document.getElementById('desktop');
+      desktop.hidden = false;
+      desktop.classList.add('loading');
+      document.getElementById('launchStatus').textContent = 'Opening Game Register...';
+      await new Promise((resolve) => setTimeout(resolve, 900));
+      document.getElementById('gameSearch').value = '';
+      document.getElementById('searchStatus').textContent = '';
+      records.replaceChildren();
+      const welcomeLevels = { 1: 'General Access', 2: 'Corporate Team', 3: 'QA Team', 4: 'Executive' };
+      const accountLevel = user.clearance ?? Math.max(1, ...games.filter((game) => user.games.includes(game.id)).map((game) => game.level));
+      document.getElementById('welcome').textContent = `Welcome, ${user.name || user.id}! Access Level - ${welcomeLevels[accountLevel]}`;
+      games.forEach((game, index) => {
+        const allowed = user.clearance != null ? game.level <= user.clearance : user.games.includes(game.id);
+        const row = document.createElement('tr');
+        if (!allowed) row.className = 'locked';
+        const number = document.createElement('th');
+        number.scope = 'row';
+        number.textContent = String(index + 1);
+        row.append(number);
+        const fields = allowed
+          ? [game.title, game.accessLevel, game.description]
+          : ['[HIGHER CLEARANCE REQUIRED]', '', ''];
+        for (const value of fields) {
+          const cell = document.createElement('td');
+          cell.textContent = value;
+          row.append(cell);
+        }
+        const playCell = document.createElement('td');
+        if (allowed) {
+          const link = document.createElement('a');
+          link.className = 'launch';
+          link.textContent = 'Play';
+          link.setAttribute('aria-label', 'Play ' + game.title);
+          link.href = game.url;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          playCell.append(link);
+        }
+        row.append(playCell);
+        records.append(row);
+      });
+      document.getElementById('terminal').hidden = true;
+      desktop.hidden = true;
+      desktop.classList.remove('loading');
+      portal.hidden = false;
+      signingIn = false;
+      form.inert = false;
+      document.getElementById('logout').focus();
+    });
+
+    document.getElementById('logout').addEventListener('click', () => {
+      portal.hidden = true;
+      document.getElementById('terminal').hidden = true;
+      login.hidden = false;
+      document.getElementById('gameSearch').value = '';
+      document.getElementById('searchStatus').textContent = '';
+      records.replaceChildren();
+      document.getElementById('welcome').textContent = '';
+      form.reset();
+      document.getElementById('error').textContent = '';
+      launching = false;
+      starting = true;
+      textIndex = 0;
+      characterIndex = 0;
+      const desktop = document.getElementById('desktop');
+      desktop.hidden = false;
+      desktop.classList.remove('loading');
+      document.getElementById('launchStatus').textContent = 'Double-click archives.exe to open';
+      document.getElementById('openArchives').disabled = false;
+      document.getElementById('openArchives').focus();
+    });
+  </script>
 </body>
 </html>
+
+
+
+
+
+
