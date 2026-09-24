@@ -99,7 +99,7 @@
       <table aria-label="Games and clearance levels">
         <thead><tr class="column-letters" aria-hidden="true"><th></th><th>A</th><th>B</th><th>C</th><th>D</th></tr>
         <tr><th scope="col">#</th><th scope="col">Game name</th><th scope="col">Access level</th><th scope="col">Description</th><th scope="col">Play</th></tr></thead>
-        <tbody id="records"></tbody>
+        <tbody id="records"></tbody><tfoot><tr><td colspan="5">Got any game recommendations? Feel free to tell me! <a href="mailto:ewnorris@wcs.k12.va.us">ewnorris@wcs.k12.va.us</a></td></tr></tfoot>
       </table>
     </div>
     <div class="sheet-footer">Game Register &nbsp; │ &nbsp; ETAHN CORPORATION</div>
@@ -114,9 +114,10 @@
       4: 'Executive Access'
     };
     const games = [
-      { id: 'game1', title: 'Project Echo', level: 1, accessLevel: accessLevels[1], description: 'Open the first game file.', url: 'game1.html' },
-      { id: 'game2', title: 'Night Shift', level: 2, accessLevel: accessLevels[2], description: 'Open the second game file.', url: 'game2.html' },
-      { id: 'game3', title: 'The Missing Record', level: 3, accessLevel: accessLevels[3], description: 'Open the third game file.', url: 'game3.html' }
+      { id: 'game1', title: 'Snake', level: 3, accessLevel: accessLevels[3], description: 'Eat, grow, and avoid the walls. Arrow keys or WASD.', url: 'game1.html' },
+      { id: 'game2', title: 'Tetris', level: 3, accessLevel: accessLevels[3], description: 'Stack falling blocks and clear complete lines.', url: 'game2.html' },
+      { id: 'game3', title: 'Super Mario Bros.', level: 3, accessLevel: accessLevels[3], description: 'Move: Arrow keys. Jump: X. Run: Z.', url: 'mario/index.html' },
+      { id: 'game4', title: 'Super Mario 64', level: 3, accessLevel: accessLevels[3], description: 'Explore the castle and collect Power Stars.', url: 'game4.html' }
     ];
 
     // EDIT THIS LIST: each person gets a username, pretend password,
@@ -128,8 +129,8 @@
       { id: 'qa', name: 'QA', password: 'quality03', clearance: 3 },
       { id: 'executive', name: 'Executive', password: 'executive04', clearance: 4 },
       { id: 'ethan', name: 'Ethan', clearance: 4, password: 'archive01', games: ['game1', 'game2', 'game3'] },
-      { id: 'alex', name: 'Alex', password: 'echo02', games: ['game1'] },
-      { id: 'sam', name: 'Sam', password: 'night03', games: ['game2', 'game3'] }
+      { id: 'alex', name: 'Alex', clearance: 1, password: 'echo02', games: ['game1'] },
+      { id: 'sam', name: 'Sam', clearance: 3, password: 'night03', games: ['game2', 'game3'] }
     ];
 
     const login = document.getElementById('login');
@@ -320,7 +321,24 @@
           link.textContent = 'Play';
           link.setAttribute('aria-label', 'Play ' + game.title);
           link.href = game.url;
-          link.target = '_blank';
+          link.addEventListener('click', (event) => {
+            event.preventDefault();
+            try {
+              const target = new URL(game.url, location.href);
+              const token = Array.from(crypto.getRandomValues(new Uint8Array(24)),
+                byte => byte.toString(16).padStart(2, '0')).join('');
+              const key = 'etahncorp-launch-' + token;
+              localStorage.setItem(key, JSON.stringify({
+                path: target.pathname,
+                created: Date.now()
+              }));
+              target.hash = 'launch=' + token;
+              window.open(target.href, '_blank', 'noopener,noreferrer');
+              setTimeout(() => localStorage.removeItem(key), 15000);
+            } catch {
+              alert('Allow browser storage to launch games from the archives.');
+            }
+          });
           link.rel = 'noopener noreferrer';
           playCell.append(link);
         }
@@ -360,9 +378,3 @@
   </script>
 </body>
 </html>
-
-
-
-
-
-

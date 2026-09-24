@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en"><head><script src="launch-guard.js"></script><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tetris</title>
+<style>*{box-sizing:border-box}body{margin:0;background:#101719;color:#e5ece8;font:16px Consolas,monospace;min-height:100vh;display:grid;place-items:center;padding:20px}main{width:min(100%,460px)}header{display:flex;justify-content:space-between;align-items:center}h1{font-size:24px}.layout{display:flex;gap:20px;align-items:flex-start}#board{width:65%;height:auto;touch-action:none;border:1px solid #55665e}aside{flex:1;font-size:14px;line-height:1.6}#next{width:100%;max-width:100px}p{line-height:1.5}small{color:#a7b9b0}canvas:focus-visible{outline:2px solid #83cfff}#status{min-height:48px}</style></head>
+<body><main><header><h1>TETRIS</h1><span>Score: <strong id="score">0</strong></span></header>
+<div class="layout"><canvas id="board" width="300" height="600" tabindex="0" aria-label="Tetris board. Arrow keys or WASD move and rotate; Space drops the piece."></canvas><aside>NEXT<canvas id="next" width="120" height="120" aria-label="Next piece preview"></canvas><p>Lines<br><strong id="lines">0</strong></p><p>Level<br><strong id="level">1</strong></p><small>← → / A D Move<br>↑ / W Rotate<br>↓ / S Soft drop<br>Space Drop<br>P Pause</small></aside></div>
+<p id="status" role="status">Press Enter or tap the board to start.</p><p><small>Touch: swipe sideways to move, tap to rotate, swipe down to drop.<br>Close this tab to return to the archives.</small></p></main>
+<script>
+const canvas=document.getElementById('board'),ctx=canvas.getContext('2d'),preview=document.getElementById('next').getContext('2d');
+const status=document.getElementById('status');
+const shapes=[[[1,1,1,1]],[[1,1],[1,1]],[[0,1,0],[1,1,1]],[[0,1,1],[1,1,0]],[[1,1,0],[0,1,1]],[[1,0,0],[1,1,1]],[[0,0,1],[1,1,1]]];
+const colors=['#61d5ef','#f7d867','#ba8ce8','#76ce93','#ef7c88','#709ff2','#efa966'];
+let grid,active,next,bag=[],score=0,lines=0,running=false,paused=false,last=0,elapsed=0;
+function pick(){if(!bag.length){bag=[0,1,2,3,4,5,6];for(let i=bag.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[bag[i],bag[j]]=[bag[j],bag[i]];}}return bag.pop();}
+function collides(shape,x,y){return shape.some((row,dy)=>row.some((v,dx)=>v&&(x+dx<0||x+dx>=10||y+dy>=20||(y+dy>=0&&grid[y+dy][x+dx]))));}
+function block(context,x,y,color,size=30){context.fillStyle=color;context.fillRect(x*size+1,y*size+1,size-2,size-2);context.fillStyle='#ffffff25';context.fillRect(x*size+2,y*size+2,size-4,3);}
+function draw(){ctx.fillStyle='#080e0b';ctx.fillRect(0,0,300,600);ctx.strokeStyle='#17251e';for(let y=0;y<20;y++)for(let x=0;x<10;x++){ctx.strokeRect(x*30,y*30,30,30);if(grid[y][x])block(ctx,x,y,colors[grid[y][x]-1]);}
+ if(active){let ghost=active.y;while(!collides(active.shape,active.x,ghost+1))ghost++;ctx.globalAlpha=.2;active.shape.forEach((row,y)=>row.forEach((v,x)=>{if(v)block(ctx,active.x+x,ghost+y,colors[active.type]);}));ctx.globalAlpha=1;active.shape.forEach((row,y)=>row.forEach((v,x)=>{if(v)block(ctx,active.x+x,active.y+y,colors[active.type]);}));}
+ if(paused){ctx.fillStyle='#000b';ctx.fillRect(0,0,300,600);ctx.fillStyle='white';ctx.font='22px Consolas';ctx.textAlign='center';ctx.fillText('PAUSED',150,300);}
+}
+function update(){document.getElementById('score').textContent=score;document.getElementById('lines').textContent=lines;document.getElementById('level').textContent=1+Math.floor(lines/10);}
+function spawn(){const type=next;next=pick();active={type,shape:shapes[type].map(r=>r.slice()),x:Math.floor((10-shapes[type][0].length)/2),y:0};elapsed=0;preview.clearRect(0,0,120,120);const s=shapes[next];s.forEach((r,y)=>r.forEach((v,x)=>{if(v)block(preview,x+(4-s[0].length)/2,y+(4-s.length)/2,colors[next]);}));if(collides(active.shape,active.x,active.y)){running=false;status.textContent='Game over. Press Enter or tap to play again.';}}
+function lock(){active.shape.forEach((r,y)=>r.forEach((v,x)=>{if(v)grid[active.y+y][active.x+x]=active.type+1;}));const remaining=grid.filter(row=>!row.every(Boolean));const cleared=20-remaining.length;grid=remaining;while(grid.length<20)grid.unshift(Array(10).fill(0));score+=[0,100,300,500,800][cleared]*(1+Math.floor(lines/10));lines+=cleared;update();spawn();}
+function down(manual=false){if(!collides(active.shape,active.x,active.y+1)){active.y++;if(manual){score++;update();}}else lock();elapsed=0;}
+function move(dx){if(!collides(active.shape,active.x+dx,active.y))active.x+=dx;}
+function rotate(){const rotated=active.shape[0].map((_,x)=>active.shape.map(row=>row[x]).reverse());for(const dx of [0,-1,1,-2,2]){if(!collides(rotated,active.x+dx,active.y)){active.shape=rotated;active.x+=dx;break;}}}
+function drop(){while(!collides(active.shape,active.x,active.y+1)){active.y++;score+=2;}lock();}
+function start(){grid=Array.from({length:20},()=>Array(10).fill(0));bag=[];score=0;lines=0;running=true;paused=false;next=pick();spawn();update();last=performance.now();status.textContent='Complete rows to clear lines. P to pause.';canvas.focus();draw();}
+function pause(){if(!running)return;paused=!paused;elapsed=0;status.textContent=paused?'Paused. Press P or tap to resume.':'Complete rows to clear lines. P to pause.';draw();}
+document.addEventListener('keydown',e=>{const key=({a:'ArrowLeft',d:'ArrowRight',w:'ArrowUp',s:'ArrowDown'})[e.key.toLowerCase()]||e.key;if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' ' ,'Enter','p','P'].includes(key))e.preventDefault();if(e.key==='Enter'&&!running&&!e.repeat){start();return;}if(e.key.toLowerCase()==='p'&&!e.repeat){pause();return;}if(!running||paused)return;if(key==='ArrowLeft')move(-1);if(key==='ArrowRight')move(1);if(key==='ArrowDown')down(true);if(key==='ArrowUp'&&!e.repeat)rotate();if(e.code==='Space'&&!e.repeat)drop();draw();});
+let touch=null;canvas.addEventListener('pointerdown',e=>{if(e.button!==0)return;touch={x:e.clientX,y:e.clientY};canvas.setPointerCapture(e.pointerId);});canvas.addEventListener('pointerup',e=>{if(!touch)return;const dx=e.clientX-touch.x,dy=e.clientY-touch.y;touch=null;if(!running){start();return;}if(paused){pause();return;}if(Math.max(Math.abs(dx),Math.abs(dy))<20)rotate();else if(Math.abs(dx)>Math.abs(dy)){const steps=Math.max(1,Math.round(Math.abs(dx)/(canvas.clientWidth/10)));for(let i=0;i<steps;i++)move(Math.sign(dx));}else if(dy>0)drop();else rotate();draw();});canvas.addEventListener('pointercancel',()=>touch=null);
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&running&&!paused)pause();});
+function frame(now){const delta=Math.min(now-last,100);last=now;if(running&&!paused){elapsed+=delta;if(elapsed>=Math.max(100,700-Math.floor(lines/10)*55)){down();draw();}}requestAnimationFrame(frame);}
+grid=Array.from({length:20},()=>Array(10).fill(0));draw();requestAnimationFrame(frame);
+</script></body></html>
+
+
+
+

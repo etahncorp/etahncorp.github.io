@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script src="launch-guard.js"></script>
+  <base href="https://cdn.jsdelivr.net/gh/NotAn127/SM64-PC-Port-WebGL@gh-pages/">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Super Mario 64</title>
+  <style>
+    html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000}
+    #container{width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+    canvas{display:block;width:100vw;height:100vh;outline:none}
+  </style>
+</head>
+<body>
+  <div id="container"><canvas class="emscripten" id="canvas" tabindex="0" aria-label="Super Mario 64 game"></canvas></div>
+<script type='text/javascript'>
+      var Module = {
+        preRun: [],
+        postRun: [],
+        print: (function() {
+          return function(text) {
+            if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
+            console.log(text);
+          };
+        })(),
+        printErr: function(text) {
+          if (arguments.length > 1)
+            text = Array.prototype.slice.call(arguments).join(' ');
+          console.error(text);
+        },
+        canvas: (function() {
+          var canvas = document.getElementById('canvas');
+          canvas.width = window.innerWidth; // Todo: how to do this from c++
+          canvas.height = window.innerHeight;
+          canvas.addEventListener("webglcontextlost", function(e) {
+            alert('WebGL context lost. You will need to reload the page.');
+            e.preventDefault();
+          }, false);
+          return canvas;
+        })(),
+        setStatus: function(text) {
+        }
+      };
+    </script>    <script async src="game/sm64.us.f3dex2e.js"></script>
+    <script>
+      const gameCanvas = document.getElementById('canvas');
+      gameCanvas.focus();
+      gameCanvas.addEventListener('pointerdown', () => gameCanvas.focus());
+    </script>
+</body>
+</html>

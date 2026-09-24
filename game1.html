@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head><script src="launch-guard.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Snake — ETAHNCORP</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#101719;color:#e5ece8;font:16px Consolas,monospace;display:grid;place-items:center;min-height:100vh;padding:20px}main{width:min(100%,480px)}header{display:flex;justify-content:space-between;align-items:center}h1{font-size:24px}small{color:#9baea5}canvas{display:block;width:100%;height:auto;background:#080e0b;border:1px solid #55665e}p{line-height:1.5}button{background:#d4ebdc;color:#102017;border:0;padding:12px 20px;font:inherit;cursor:pointer}button:focus-visible,canvas:focus-visible{outline:3px solid #83cfff;outline-offset:3px}.controls{display:flex;gap:10px;flex-wrap:wrap}.arrows{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:16px}.arrows button{touch-action:manipulation}.up{grid-column:2}.left{grid-column:1}#status{min-height:48px}
+</style>
+</head>
+<body><main>
+
+<header><h1>SNAKE</h1><span>Score: <strong id="score">0</strong></span></header>
+<canvas id="board" width="480" height="480" tabindex="0" aria-label="Snake game board. Use arrow keys or WASD to move."></canvas>
+<p id="status" role="status">Press Enter or tap the board to start.</p>
+<p><small>Arrow keys / WASD or swipe to move · Space or tap to pause<br>Close this tab to return to the archives.</small></p>
+</main>
+<script>
+const canvas=document.getElementById('board'),ctx=canvas.getContext('2d');
+const status=document.getElementById('status'),scoreText=document.getElementById('score');
+
+const size=20,cell=canvas.width/size;
+const directions={up:{x:0,y:-1},down:{x:0,y:1},left:{x:-1,y:0},right:{x:1,y:0}};
+let snake,direction,queued,food,score,timer,running=false,paused=false;
+function spawnFood(){
+ const free=[];
+ for(let y=0;y<size;y++)for(let x=0;x<size;x++)if(!snake.some(p=>p.x===x&&p.y===y))free.push({x,y});
+ return free.length?free[Math.floor(Math.random()*free.length)]:null;
+}
+function draw(){
+ ctx.fillStyle='#080e0b';ctx.fillRect(0,0,canvas.width,canvas.height);
+ ctx.strokeStyle='#14231a';ctx.lineWidth=1;
+ for(let i=0;i<=size;i++){ctx.beginPath();ctx.moveTo(i*cell,0);ctx.lineTo(i*cell,canvas.height);ctx.stroke();ctx.beginPath();ctx.moveTo(0,i*cell);ctx.lineTo(canvas.width,i*cell);ctx.stroke();}
+ if(food){ctx.fillStyle='#f7b267';ctx.fillRect(food.x*cell+5,food.y*cell+5,cell-10,cell-10);}
+ snake.forEach((p,i)=>{ctx.fillStyle=i===0?'#e2ffe9':'#76b88a';ctx.fillRect(p.x*cell+2,p.y*cell+2,cell-4,cell-4);});
+}
+function reset(){snake=[{x:8,y:10},{x:7,y:10},{x:6,y:10}];direction=directions.right;queued=null;score=0;scoreText.textContent=score;food=spawnFood();draw();}
+function end(message){clearInterval(timer);running=false;paused=false;status.textContent=message+' Press Enter or tap to play again.';}
+function tick(){
+ if(!running||paused)return;
+ if(queued){direction=queued;queued=null;}
+ const head={x:snake[0].x+direction.x,y:snake[0].y+direction.y};
+ const eating=food&&head.x===food.x&&head.y===food.y;
+ const body=eating?snake:snake.slice(0,-1);
+ if(head.x<0||head.x>=size||head.y<0||head.y>=size||body.some(p=>p.x===head.x&&p.y===head.y)){end('Game over. Final score: '+score+'.');return;}
+ snake.unshift(head);
+ if(eating){score++;scoreText.textContent=score;food=spawnFood();if(!food){draw();end('You filled the board! Final score: '+score+'.');return;}}
+ else snake.pop();
+ draw();
+}
+function turn(name){
+ if(!running||paused||queued)return;
+ const next=directions[name];
+ if(next.x===-direction.x&&next.y===-direction.y)return;
+ queued=next;
+}
+function togglePause(){if(!running)return;paused=!paused;status.textContent=paused?'Paused. Press Space or tap to resume.':'Eat the food. Avoid the walls and your tail.';}
+function startGame(){clearInterval(timer);reset();running=true;paused=false;status.textContent='Eat the food. Avoid the walls and your tail.';timer=setInterval(tick,130);canvas.focus();}
+document.addEventListener('keydown',event=>{
+ const name={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',w:'up',s:'down',a:'left',d:'right'}[event.key]||{w:'up',s:'down',a:'left',d:'right'}[event.key.toLowerCase()];
+ if(name){event.preventDefault();turn(name);}
+ if(event.code==='Space'||event.key==='Enter'){
+  event.preventDefault();
+  if(event.repeat)return;
+  if(!running)startGame();else togglePause();
+ }
+});
+canvas.style.touchAction='none';
+let pointerStart=null;
+canvas.addEventListener('pointerdown',event=>{
+ if(event.button!==0)return;
+ pointerStart={x:event.clientX,y:event.clientY};
+ canvas.setPointerCapture(event.pointerId);
+});
+canvas.addEventListener('pointerup',event=>{
+ if(!pointerStart)return;
+ const dx=event.clientX-pointerStart.x,dy=event.clientY-pointerStart.y;
+ pointerStart=null;
+ if(Math.max(Math.abs(dx),Math.abs(dy))>20){
+  if(running&&!paused)turn(Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up'));
+ }else if(!running)startGame();else togglePause();
+});
+canvas.addEventListener('pointercancel',()=>{pointerStart=null;});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&running&&!paused)togglePause();});
+reset();
+</script></body></html>
+
+
+
+
