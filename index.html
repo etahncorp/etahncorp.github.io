@@ -9,13 +9,7 @@
     * { box-sizing: border-box; }
     body { margin: 0; background: #0c0c0c; color: #ccc; font: 16px/1.15 Consolas, 'Lucida Console', monospace; }
     main { min-height: 100vh; padding: 38px 8px 16px; }
-    .titlebar { position: absolute; top: 0; left: 0; width: 100%; height: 30px; display: flex; align-items: center; justify-content: space-between; background: #fff; color: #000; padding-left: 10px; font: 12px 'Segoe UI', sans-serif; }
-    .titlebar .caption { display: flex; align-items: center; gap: 7px; }
-    .cmd-icon { background: #111; color: white; border: 1px solid #888; font: 10px Consolas, monospace; padding: 0 2px; }
-    .window-controls { display: flex; height: 30px; align-items: center; }
-    .window-controls span { width: 46px; text-align: center; font: 16px 'Segoe UI', sans-serif; }
     p { margin: 0; }
-    .boot { margin-bottom: 20px; }
     .muted { color: inherit; }
     form { margin: 18px 0 0; }
     label { display: flex; align-items: baseline; gap: 1ch; }
@@ -57,37 +51,27 @@
     #portal a:focus-visible, #portal button:focus-visible { outline: 2px solid #224d65; }
     .locked td { background: #fafafa; color: #737980; font: 13px Consolas, monospace; }
     .sheet-footer { padding: 10px 18px; border-top: 1px solid #bac3ca; background: #e9edef; }
-    #desktop { position: fixed; inset: 0; background: #18252f; color: white; font: 13px 'Segoe UI', sans-serif; padding: 28px; }
-    .desktop-brand { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; color: #adc0cd; letter-spacing: 5px; }
-    .desktop-brand img { width: 170px; height: 170px; object-fit: contain; margin-bottom: 20px; }
-    #openArchives { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; width: 105px; padding: 14px 4px; font: inherit; color: white; }
-    #openArchives:hover, #openArchives:focus-visible { background: #ffffff18; outline: 1px solid #ffffff60; }
-    .exe-icon { background: #0c0c0c; border: 2px solid #ccc; border-top: 8px solid #eee; width: 48px; height: 40px; text-align: left; padding: 3px; font: 16px Consolas, monospace; }
-    #desktop.loading, #desktop.loading * { cursor: progress; }
-    #openArchives:focus { background: #ffffff18; outline: 1px solid #ffffff60; }
-    .taskbar { position: absolute; bottom: 0; left: 0; right: 0; height: 36px; padding: 10px 16px; background: #10171e; display: flex; justify-content: space-between; }
     @media (max-width: 500px) { body { font-size: 14px; } .record { gap: 1ch; flex-wrap: wrap; margin-bottom: 8px; } }
+      body { background: #000; }
+    #terminal { min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: 24px; }
+    #login { width: min(100%, 320px); }
+    #loginForm { margin: 0; }
+    #loginForm input { display: block; width: 100%; max-width: none; padding: 12px 0; color: #eee; background: #000; }
+    #loginForm input::placeholder { color: #777; }
+    #loginForm input:focus-visible { box-shadow: 0 1px #555; }
+    #error { color: #aaa; font-size: 13px; line-height: 1.5; }
+    .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   </style>
 </head>
 <body>
-  <section id="desktop" aria-label="ETAHNCORP desktop">
-    <div class="desktop-brand"><img src="etahncorp-logo.png" alt=""><span>ETAHN CORPORATION</span></div>
-    <button id="openArchives" type="button" aria-label="Open archives.exe" aria-describedby="launchStatus"><span class="exe-icon" aria-hidden="true">&gt;_</span><span>archives.exe</span></button>
-    <div class="taskbar"><span>ETAHNCORP WORKSTATION</span><span id="launchStatus" role="status">Double-click archives.exe to open</span></div>
-  </section>
-  <main id="terminal" hidden>
-    <div class="titlebar"><span class="caption"><img src="etahncorp-logo.png" alt="ETAHNCORP" width="20" height="20">Command Prompt - ETAHNCORP Archives</span><span class="window-controls" aria-hidden="true"><span>−</span><span>□</span><span>×</span></span></div>
-    <p class="boot">ETAHNCORP ARCHIVES [Version 1.0.0]<br>(c) ETAHN CORPORATION. All rights reserved.</p>
-
+  <main id="terminal">
     <section id="login">
-      <p>C:\ETAHNCORP&gt; archives.exe<br><br>ETAHNCORP Archives<br>Sign in to continue.</p>
-      <form id="loginForm">
-        <label>User ID: <input id="userId" autocomplete="username" spellcheck="false" autocapitalize="none" required></label>
-        <label>Password: <input id="password" type="password" autocomplete="current-password" required></label>
-        <button type="submit">[Enter] Sign in</button>
+      <form id="loginForm" aria-label="Sign in">
+        <input id="userId" aria-label="User ID" placeholder="ID" autocomplete="username" spellcheck="false" autocapitalize="none" enterkeyhint="next" required autofocus>
+        <input id="password" aria-label="Password" placeholder="Password" type="password" autocomplete="current-password" enterkeyhint="go" required>
+        <button type="submit" class="visually-hidden" tabindex="-1">Sign in</button>
         <p id="error" role="alert"></p>
       </form>
-
     </section>
   </main>
   <section id="portal" hidden aria-label="ETAHNCORP game spreadsheet">
@@ -195,83 +179,12 @@
       });
     }
 
-    // Reveal terminal text once on page load. Enter or any click finishes it.
-    const startupText = [];
-    for (const section of [document.querySelector('.boot'), login]) {
-      const walker = document.createTreeWalker(section, NodeFilter.SHOW_TEXT);
-      while (walker.nextNode()) {
-        const node = walker.currentNode;
-        if (node.textContent.trim()) startupText.push({ node, text: node.textContent });
-      }
-    }
-    let startupTimer;
-    let starting = true;
-    let textIndex = 0;
-    let characterIndex = 0;
-    function finishStartup() {
-      if (!starting) return;
-      starting = false;
-      clearTimeout(startupTimer);
-      for (const entry of startupText) entry.node.textContent = entry.text;
-      form.inert = false;
-      document.removeEventListener('keydown', skipStartup, true);
-      document.removeEventListener('click', skipStartup, true);
-      document.getElementById('userId').focus();
-    }
-    function skipStartup(event) {
-      if (event.type === 'keydown' && (event.key !== 'Enter' || event.repeat)) return;
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      finishStartup();
-    }
-    function typeNextCharacter() {
-      if (!starting) return;
-      const entry = startupText[textIndex];
-      entry.node.textContent = entry.text.slice(0, ++characterIndex);
-      if (/\S/.test(entry.text[characterIndex - 1])) playTypingClick();
-      if (characterIndex === entry.text.length) {
-        textIndex++;
-        characterIndex = 0;
-      }
-      if (textIndex === startupText.length) finishStartup();
-      else startupTimer = setTimeout(typeNextCharacter, 22);
-    }
-    let launching = false;
-    async function launchArchives() {
-      if (launching) return;
-      launching = true;
-      document.getElementById('openArchives').disabled = true;
-      document.getElementById('desktop').classList.add('loading');
-      document.getElementById('launchStatus').textContent = 'Starting archives.exe...';
-      // This explicit launch gesture unlocks audio before the first character.
-      await Promise.all([
-        Promise.race([
-          Promise.resolve(enableTypingAudio()),
-          new Promise((resolve) => setTimeout(resolve, 500))
-        ]),
-        new Promise((resolve) => setTimeout(resolve, 900))
-      ]);
-      document.getElementById('desktop').hidden = true;
-      document.getElementById('desktop').classList.remove('loading');
-      document.getElementById('terminal').hidden = false;
-      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        finishStartup();
-      } else {
-        form.inert = true;
-        for (const entry of startupText) entry.node.textContent = '';
-        document.addEventListener('keydown', skipStartup, true);
-        document.addEventListener('click', skipStartup, true);
-        typeNextCharacter();
-      }
-    }
-    document.getElementById('openArchives').addEventListener('dblclick', launchArchives);
-    document.getElementById('openArchives').addEventListener('keydown', (event) => {
-      if ((event.key === 'Enter' || event.key === ' ') && !event.repeat) {
+    document.getElementById('userId').addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
         event.preventDefault();
-        launchArchives();
+        document.getElementById('password').focus();
       }
     });
-
     let signingIn = false;
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
@@ -289,10 +202,6 @@
       signingIn = true;
       form.inert = true;
       document.getElementById('terminal').hidden = true;
-      const desktop = document.getElementById('desktop');
-      desktop.hidden = false;
-      desktop.classList.add('loading');
-      document.getElementById('launchStatus').textContent = 'Opening Game Register...';
       await new Promise((resolve) => setTimeout(resolve, 900));
       document.getElementById('gameSearch').value = '';
       document.getElementById('searchStatus').textContent = '';
@@ -348,8 +257,8 @@
         records.append(row);
       });
       document.getElementById('terminal').hidden = true;
-      desktop.hidden = true;
-      desktop.classList.remove('loading');
+
+
       portal.hidden = false;
       signingIn = false;
       form.inert = false;
@@ -366,16 +275,8 @@
       document.getElementById('welcome').textContent = '';
       form.reset();
       document.getElementById('error').textContent = '';
-      launching = false;
-      starting = true;
-      textIndex = 0;
-      characterIndex = 0;
-      const desktop = document.getElementById('desktop');
-      desktop.hidden = false;
-      desktop.classList.remove('loading');
-      document.getElementById('launchStatus').textContent = 'Double-click archives.exe to open';
-      document.getElementById('openArchives').disabled = false;
-      document.getElementById('openArchives').focus();
+      document.getElementById('terminal').hidden = false;
+      document.getElementById('userId').focus();
     });
   </script>
 </body>
