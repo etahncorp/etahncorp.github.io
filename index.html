@@ -77,7 +77,7 @@
   <section id="portal" hidden aria-label="ETAHNCORP game spreadsheet">
     <div class="sheet-title"><img src="etahncorp-logo.png" alt=""><strong>ETAHNCORP ARCHIVES — Game Register</strong></div>
     <div class="sheet-toolbar"><p id="welcome"></p><button id="logout" type="button">Sign out</button></div>
-    <div class="formula-bar">A1 &nbsp; │ &nbsp; fx &nbsp; Game archive directory</div>
+    <nav style="padding:10px 18px"><button id="gamesTab" type="button">Games</button> <button id="itTab" type="button" hidden>IT Servers</button></nav><section id="itPanel" hidden style="overflow:auto;padding:18px"><h2>IT Servers</h2><p>Access attempts — this browser only. Passwords are never recorded.</p><p id="auditStatus" role="status"></p><table><thead><tr><th>Time</th><th>Account ID</th><th>Event</th><th>Result</th></tr></thead><tbody id="auditRows"></tbody></table></section><div id="gamesPanel" style="display:flex;flex-direction:column;flex:1;min-height:0"><div class="formula-bar">A1 &nbsp; │ &nbsp; fx &nbsp; Game archive directory</div>
     <div class="search-bar"><label for="gameSearch">Search <input id="gameSearch" type="search" placeholder="Game name, access level, or description" autocomplete="off"></label><p id="searchStatus" role="status"></p></div>
     <div class="sheet-grid">
       <table aria-label="Games and clearance levels">
@@ -86,7 +86,7 @@
         <tbody id="records"></tbody><tfoot><tr><td colspan="5">Got any game recommendations? Feel free to tell me! <a href="mailto:ewnorris@wcs.k12.va.us">ewnorris@wcs.k12.va.us</a></td></tr></tfoot>
       </table>
     </div>
-    <div class="sheet-footer">Game Register &nbsp; │ &nbsp; ETAHN CORPORATION</div>
+    </div><div class="sheet-footer">Game Register &nbsp; │ &nbsp; ETAHN CORPORATION</div>
   </section>
   <script>
     // EDIT THIS LIST: change the titles, descriptions, and game URLs.
@@ -185,6 +185,49 @@
         document.getElementById('password').focus();
       }
     });
+    let currentUser = null;
+    let auditError = '';
+    const auditKey = 'etahncorp-access-log';
+    function readAudit() {
+      try {
+        const entries = JSON.parse(localStorage.getItem(auditKey) || '[]');
+        if (!Array.isArray(entries)) throw Error('Invalid log');
+        return entries;
+      } catch { auditError = 'Stored logs are unavailable in this browser.'; return []; }
+    }
+    function logAccess(account, event, result) {
+      const entries = readAudit();
+      entries.push({ time: new Date().toISOString(), account, event, result });
+      try { localStorage.setItem(auditKey, JSON.stringify(entries)); }
+      catch { auditError = 'Log could not be saved: browser storage is blocked or full.'; }
+    }
+    function showGames() {
+      document.getElementById('itPanel').hidden = true;
+      document.getElementById('gamesPanel').hidden = false;
+    }
+    function showAudit() {
+      if (!currentUser || currentUser.clearance !== 4) return;
+      document.getElementById('gamesPanel').hidden = true;
+      document.getElementById('itPanel').hidden = false;
+      const body = document.getElementById('auditRows');
+      body.replaceChildren();
+      for (const entry of readAudit().reverse()) {
+        const row = document.createElement('tr');
+        for (const value of [new Date(entry.time).toLocaleString(), entry.account, entry.event, entry.result]) {
+          const cell = document.createElement('td');
+          cell.textContent = value;
+          row.append(cell);
+        }
+        body.append(row);
+      }
+      document.getElementById('auditStatus').textContent = auditError || 'Logs are stored locally on this device, not shared across classmates.';
+    }
+    document.getElementById('gamesTab').addEventListener('click', showGames);
+    document.getElementById('itTab').addEventListener('click', showAudit);
+    window.addEventListener('storage', (event) => {
+      if (event.key === auditKey && !document.getElementById('itPanel').hidden) showAudit();
+    });
+    logAccess('—', 'Archive opened', 'Login required');
     let signingIn = false;
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
@@ -193,12 +236,16 @@
         entry.id === document.getElementById('userId').value.trim() &&
         entry.password === document.getElementById('password').value
       );
+      logAccess(document.getElementById('userId').value.trim(), 'Login attempt', user ? 'Accepted' : 'Rejected');
       if (!user) {
         document.getElementById('error').textContent = 'ID or game password not recognized.';
         return;
       }
       document.getElementById('error').textContent = '';
       document.getElementById('password').value = '';
+      currentUser = user;
+      document.getElementById('itTab').hidden = user.clearance !== 4;
+      showGames();
       signingIn = true;
       form.inert = true;
       document.getElementById('terminal').hidden = true;
@@ -266,6 +313,10 @@
     });
 
     document.getElementById('logout').addEventListener('click', () => {
+      logAccess(currentUser?.id || '—', 'Sign out', 'Completed');
+      currentUser = null;
+      document.getElementById('auditRows').replaceChildren();
+      showGames();
       portal.hidden = true;
       document.getElementById('terminal').hidden = true;
       login.hidden = false;
