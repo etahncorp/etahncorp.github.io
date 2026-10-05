@@ -59,6 +59,18 @@
     tfoot td { padding:20px; color:#778391; font-size:12px; line-height:1.8; border:0; }
     tfoot a { color:#326e9a; text-underline-offset:3px; }
     .sheet-footer { padding:12px 2px 0; color:#8b96a3; font-size:11px; letter-spacing:.3px; }
+    .filter-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    #classFilter { border:1px solid #dbe2ea; border-radius:6px; padding:10px 12px; background:#f7f9fb; color:#233041; font:inherit; }
+    .preview-dialog { border:0; border-radius:12px; padding:0; width:min(560px,calc(100% - 32px)); box-shadow:0 20px 70px #0005; color:#233041; }
+    .preview-dialog::backdrop { background:#15202b99; backdrop-filter:blur(3px); }
+    .preview-card { padding:24px; }
+    .preview-card h2 { margin:0 0 8px; font-size:21px; }
+    .preview-meta { color:#5f7182; font-size:12px; margin-bottom:16px; }
+    .preview-card p { margin:0 0 20px; color:#526170; }
+    .preview-actions { display:flex; justify-content:flex-end; gap:10px; }
+    .preview-actions button,.preview-actions a { border:1px solid #d4e2ef; border-radius:6px; padding:8px 16px; font:inherit; cursor:pointer; text-decoration:none; }
+    .preview-actions .primary { background:#24608c; color:white; }
+    .file-viewer { max-height:280px; width:100%; margin:0 0 18px; border-radius:8px; background:#101820; }
     @media(max-width:600px) { #portal { padding:20px 12px 12px; } .sheet-title strong { font-size:17px; } .sheet-toolbar { font-size:12px; padding-bottom:18px; } .search-bar { padding:12px; } .search-bar label { align-items:stretch; flex-direction:column; gap:6px; } }
     @media (max-width: 500px) { body { font-size: 14px; } .record { gap: 1ch; flex-wrap: wrap; margin-bottom: 8px; } }
       body { background: #000; }
@@ -86,16 +98,17 @@
   <section id="portal" hidden aria-label="ETAHNCORP game spreadsheet">
     <div class="sheet-title"><img src="etahncorp-logo.png" alt=""><strong>ETAHNCORP Archives</strong></div>
     <div class="sheet-toolbar"><p id="welcome"></p><button id="logout" type="button">Sign out</button></div>
-    <div class="search-bar"><label for="gameSearch">Search <input id="gameSearch" type="search" placeholder="Game name, access level, or description" autocomplete="off"></label><p id="searchStatus" role="status"></p></div>
+    <div class="search-bar"><div class="filter-row"><label for="gameSearch">Filter <input id="gameSearch" type="search" placeholder="File name, classification, or description" autocomplete="off"></label><select id="classFilter" aria-label="Filter by classification"><option value="">All classifications</option><option value="Game">Games</option><option value="Media">Media</option></select></div><p id="searchStatus" role="status"></p></div>
     <div class="sheet-grid">
       <table aria-label="Games and clearance levels">
         <thead>
-        <tr><th scope="col">#</th><th scope="col">Game name</th><th scope="col">Access level</th><th scope="col">Description</th><th scope="col">Play</th></tr></thead>
+        <tr><th scope="col">#</th><th scope="col">File name</th><th scope="col">Classification</th><th scope="col">Access level</th><th scope="col">Description</th><th scope="col">Preview</th></tr></thead>
         <tbody id="records"></tbody><tfoot><tr><td colspan="5">Got any game recommendations? Feel free to tell me! <a href="mailto:ewnorris@wcs.k12.va.us">ewnorris@wcs.k12.va.us</a></td></tr></tfoot>
       </table>
     </div>
     <div class="sheet-footer">Game Register &nbsp; │ &nbsp; ETAHN CORPORATION</div>
   </section>
+  <dialog id="previewDialog" class="preview-dialog"><div class="preview-card"><h2 id="previewTitle"></h2><div id="previewMeta" class="preview-meta"></div><div id="previewBody"></div><div class="preview-actions"><button id="closePreview" type="button">Close</button><a id="previewPlay" class="primary" target="_blank" rel="noopener noreferrer">Play</a></div></div></dialog>
   <script>
     // EDIT THIS LIST: change the titles, descriptions, and game URLs.
     // URLs can be your own HTML files or full https:// links to games.
@@ -150,6 +163,7 @@
       ,{ id: 'amazing-strange-rope-police', title: 'Amazing Strange Rope Police', level: 3, accessLevel: accessLevels[3], description: 'Open world action game.', url: 'games/a/clstreangeropepolice.html' }
       ,{ id: 'are-we-there-yet', title: 'Are We There Yet?', level: 3, accessLevel: accessLevels[3], description: 'Driving adventure.', url: 'games/a/clarewethereyet.html' }
       ,{ id: 'assessment-examination', title: 'Assessment Examination', level: 3, accessLevel: accessLevels[3], description: 'Interactive examination game.', url: 'games/a/classesmentexaminationque.html' }
+      ,{ id: 'chair-test', title: 'Chair Test', level: 3, accessLevel: accessLevels[3], classification: 'Media', description: 'A short chair video test file.', url: 'files/chair-1-1.mov', fileType: 'mov' }
     ];
 
     // EDIT THIS LIST: each person gets a username, pretend password,
@@ -169,19 +183,44 @@
     const portal = document.getElementById('portal');
     const form = document.getElementById('loginForm');
     const records = document.getElementById('records');
-    document.getElementById('gameSearch').addEventListener('input', (event) => {
-      const query = event.target.value.trim().toLowerCase();
+    const previewDialog = document.getElementById('previewDialog');
+    function openPreview(file) {
+      document.getElementById('previewTitle').textContent = file.title;
+      document.getElementById('previewMeta').textContent = `${file.classification || 'Game'}  •  ${file.accessLevel}`;
+      const body = document.getElementById('previewBody');
+      body.replaceChildren();
+      const description = document.createElement('p');
+      description.textContent = file.description;
+      body.append(description);
+      if ((file.classification || 'Game') !== 'Game' && !file.url.toLowerCase().endsWith('.ecorp')) {
+        const viewer = file.fileType === 'mov' ? document.createElement('video') : document.createElement('iframe');
+        viewer.className = 'file-viewer';
+        if (viewer.tagName === 'VIDEO') { viewer.controls = true; viewer.src = file.url; }
+        else { viewer.src = file.url; viewer.title = file.title; }
+        body.prepend(viewer);
+      }
+      const play = document.getElementById('previewPlay');
+      play.href = file.url;
+      play.hidden = (file.classification || 'Game') !== 'Game';
+      previewDialog.showModal();
+    }
+    document.getElementById('closePreview').addEventListener('click', () => previewDialog.close());
+    function applyFilters() {
+      const query = document.getElementById('gameSearch').value.trim().toLowerCase();
+      const classification = document.getElementById('classFilter').value.toLowerCase();
       let count = 0;
       for (const row of records.rows) {
         // Search only displayed fields, never the names behind locked rows.
         const displayed = Array.from(row.querySelectorAll('td')).slice(0, 3)
           .map((cell) => cell.textContent).join(' ').toLowerCase();
-        row.hidden = !displayed.includes(query);
+        row.hidden = !(displayed.includes(query) && (!classification || row.dataset.classification === classification));
         if (!row.hidden) count++;
       }
       document.getElementById('searchStatus').textContent = query
-        ? (count ? `${count} matching row${count === 1 ? '' : 's'}` : 'No matching games.') : '';
-    });
+        ? (count ? `${count} matching file${count === 1 ? '' : 's'}` : 'No matching files.') : '';
+    }
+    document.getElementById('gameSearch').addEventListener('input', applyFilters);
+    document.getElementById('classFilter').addEventListener('change', applyFilters);
 
     // Synthesized locally: no audio files or downloads required.
     let typingAudio;
@@ -250,6 +289,7 @@
       document.getElementById('terminal').hidden = true;
       await new Promise((resolve) => setTimeout(resolve, 900));
       document.getElementById('gameSearch').value = '';
+      document.getElementById('classFilter').value = '';
       document.getElementById('searchStatus').textContent = '';
       records.replaceChildren();
       const welcomeLevels = { 1: 'General Access', 2: 'Corporate Team', 3: 'QA Team', 4: 'Executive' };
@@ -258,14 +298,15 @@
       games.forEach((game, index) => {
         const allowed = user.clearance != null ? game.level <= user.clearance : user.games.includes(game.id);
         const row = document.createElement('tr');
+        row.dataset.classification = (game.classification || 'Game').toLowerCase();
         if (!allowed) row.className = 'locked';
         const number = document.createElement('th');
         number.scope = 'row';
         number.textContent = String(index + 1);
         row.append(number);
         const fields = allowed
-          ? [game.title, game.accessLevel, game.description]
-          : ['[HIGHER CLEARANCE REQUIRED]', '', ''];
+          ? [game.title, game.classification || 'Game', game.accessLevel, game.description]
+          : ['[HIGHER CLEARANCE REQUIRED]', '', '', ''];
         for (const value of fields) {
           const cell = document.createElement('td');
           cell.textContent = value;
@@ -273,18 +314,17 @@
         }
         const playCell = document.createElement('td');
         if (allowed) {
-          const link = document.createElement('a');
-          link.className = 'launch';
-          link.textContent = 'Play';
-          link.setAttribute('aria-label', 'Play ' + game.title);
-          link.href = game.url;
-          link.target = '_blank';
-          link.rel = 'noopener noreferrer';
-          playCell.append(link);
+          const button = document.createElement('button');
+          button.className = 'launch';
+          button.textContent = 'Preview';
+          button.setAttribute('aria-label', 'Preview ' + game.title);
+          button.addEventListener('click', () => openPreview(game));
+          playCell.append(button);
         }
         row.append(playCell);
         records.append(row);
       });
+      applyFilters();
       document.getElementById('terminal').hidden = true;
 
 
