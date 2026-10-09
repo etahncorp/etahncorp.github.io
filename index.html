@@ -71,6 +71,10 @@
     .preview-actions button,.preview-actions a { border:1px solid #d4e2ef; border-radius:6px; padding:8px 16px; font:inherit; cursor:pointer; text-decoration:none; }
     .preview-actions .primary { background:#24608c; color:white; }
     .file-viewer { max-height:280px; width:100%; margin:0 0 18px; border-radius:8px; background:#101820; }
+    .retrieval-loading { padding:18px 0 22px; color:#5f7182; }
+    .retrieval-loading strong { display:block; margin-bottom:10px; color:#233041; }
+    .retrieval-track { height:8px; overflow:hidden; border-radius:99px; background:#e5ebf1; }
+    .retrieval-progress { width:0; height:100%; border-radius:inherit; background:#357fb3; transition:width .12s linear; }
     @media(max-width:600px) { #portal { padding:20px 12px 12px; } .sheet-title strong { font-size:17px; } .sheet-toolbar { font-size:12px; padding-bottom:18px; } .search-bar { padding:12px; } .search-bar label { align-items:stretch; flex-direction:column; gap:6px; } }
     @media (max-width: 500px) { body { font-size: 14px; } .record { gap: 1ch; flex-wrap: wrap; margin-bottom: 8px; } }
       body { background: #000; }
@@ -184,9 +188,31 @@
     const form = document.getElementById('loginForm');
     const records = document.getElementById('records');
     const previewDialog = document.getElementById('previewDialog');
+    let retrievalTimer;
     function openPreview(file) {
+      clearInterval(retrievalTimer);
       document.getElementById('previewTitle').textContent = file.title;
       document.getElementById('previewMeta').textContent = `${file.classification || 'Game'}  •  ${file.accessLevel}`;
+      const body = document.getElementById('previewBody');
+      body.replaceChildren();
+      const loading = document.createElement('div');
+      loading.className = 'retrieval-loading';
+      loading.innerHTML = '<strong>L.A.R.P. retrieval in progress...</strong><div class="retrieval-track"><div class="retrieval-progress"></div></div><small>Verifying clearance and preparing file preview</small>';
+      body.append(loading);
+      document.getElementById('previewPlay').hidden = true;
+      previewDialog.showModal();
+      const progress = loading.querySelector('.retrieval-progress');
+      let value = 0;
+      retrievalTimer = setInterval(() => {
+        value = Math.min(100, value + 10);
+        progress.style.width = `${value}%`;
+        if (value >= 100) {
+          clearInterval(retrievalTimer);
+          showPreviewContents(file);
+        }
+      }, 70);
+    }
+    function showPreviewContents(file) {
       const body = document.getElementById('previewBody');
       body.replaceChildren();
       const description = document.createElement('p');
@@ -202,9 +228,8 @@
       const play = document.getElementById('previewPlay');
       play.href = file.url;
       play.hidden = (file.classification || 'Game') !== 'Game';
-      previewDialog.showModal();
     }
-    document.getElementById('closePreview').addEventListener('click', () => previewDialog.close());
+    document.getElementById('closePreview').addEventListener('click', () => { clearInterval(retrievalTimer); previewDialog.close(); });
     function applyFilters() {
       const query = document.getElementById('gameSearch').value.trim().toLowerCase();
       const classification = document.getElementById('classFilter').value.toLowerCase();
