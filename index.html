@@ -37,6 +37,8 @@
     .larp-banner::after { content:''; position:absolute; inset:0; background:linear-gradient(90deg,transparent,#fff8,transparent); transform:translateX(-100%); animation:larp-scan 5s infinite; pointer-events:none; }
     @keyframes larp-scan { 55%,100% { transform:translateX(100%); } }
     .larp-banner b { color:#24608c; }
+    .larp-file td:nth-child(2) { color:#1e638e; font-weight:700; }
+    .larp-file td:nth-child(3) { color:#7a4f19; }
     .sheet-toolbar { display:flex; justify-content:space-between; align-items:center; gap:16px; padding-bottom:24px; color:#596778; }
     #portal #logout { margin:0; padding:7px 14px; border:1px solid #d0d8e1; border-radius:6px; background:white; color:#3a4b5e; white-space:nowrap; }
     #portal #logout:hover { background:#e9eef3; }
@@ -107,7 +109,7 @@
     <div class="sheet-title"><img src="etahncorp-logo.png" alt=""><strong>ETAHNCORP Archives</strong></div>
     <div class="larp-banner"><span><b>L.A.R.P.</b> · Limited Access Retrieval Protocol</span><span id="larpStatus">SYSTEM READY</span></div>
     <div class="sheet-toolbar"><p id="welcome"></p><button id="logout" type="button">Sign out</button></div>
-    <div class="search-bar"><div class="filter-row"><label for="gameSearch">Filter <input id="gameSearch" type="search" placeholder="File name, classification, or description" autocomplete="off"></label><select id="classFilter" aria-label="Filter by classification"><option value="">All classifications</option><option value="Game">Games</option><option value="Media">Media</option></select></div><p id="searchStatus" role="status"></p></div>
+    <div class="search-bar"><div class="filter-row"><label for="gameSearch">Filter <input id="gameSearch" type="search" placeholder="File name, classification, or description" autocomplete="off"></label><select id="classFilter" aria-label="Filter by classification"><option value="">All classifications</option><option value="Game">Games</option><option value="Media">Media</option><option value="L.A.R.P.">L.A.R.P.</option></select></div><p id="searchStatus" role="status"></p></div>
     <div class="sheet-grid">
       <table aria-label="Games and clearance levels">
         <thead>
@@ -128,6 +130,7 @@
       4: 'Executive Access'
     };
     const games = [
+      { id: 'larp-update-log', title: 'L.A.R.P. Update Log', level: 1, accessLevel: accessLevels[1], classification: 'L.A.R.P.', description: 'Protocol notice: Remember to follow protocol.', url: 'files/larp-update-log.html', fileType: 'ecorp' },
       { id: 'game1', title: 'Snake', level: 3, accessLevel: accessLevels[3], description: 'Eat, grow, and avoid the walls. Arrow keys or WASD.', url: 'game1.html' },
       { id: 'game2', title: 'Tetris', level: 3, accessLevel: accessLevels[3], description: 'Stack falling blocks and clear complete lines.', url: 'game2.html' },
       { id: 'game3', title: 'Super Mario Bros.', level: 3, accessLevel: accessLevels[3], description: 'Move: Arrow keys. Jump: X. Run: Z.', url: 'mario/index.html' },
@@ -336,6 +339,7 @@
         const allowed = user.clearance != null ? game.level <= user.clearance : user.games.includes(game.id);
         const row = document.createElement('tr');
         row.dataset.classification = (game.classification || 'Game').toLowerCase();
+        if ((game.classification || '').toLowerCase() === 'l.a.r.p.') row.className = 'larp-file';
         if (!allowed) row.className = 'locked';
         const number = document.createElement('th');
         number.scope = 'row';
