@@ -182,13 +182,7 @@
     // and a list of game IDs they can see. IDs/passwords are case-sensitive.
     // This is NOT secure authentication: anyone can read this source code.
     const users = [
-      { id: 'general', name: 'General', password: 'general01', clearance: 1 },
-      { id: 'corporate', name: 'Corporate', password: 'corporate02', clearance: 2 },
-      { id: 'qa', name: 'QA', password: 'quality03', clearance: 3 },
-      { id: 'executive', name: 'Executive', password: 'executive04', clearance: 4 },
-      { id: 'ethan', name: 'Ethan', clearance: 4, password: 'archive01', games: ['game1', 'game2', 'game3'] },
-      { id: 'alex', name: 'Alex', clearance: 1, password: 'echo02', games: ['game1'] },
-      { id: 'sam', name: 'Sam', clearance: 3, password: 'night03', games: ['game2', 'game3'] }
+      { id: 'ethan', name: 'Ethan', clearance: 4, password: 'archive01', games: ['game1', 'game2', 'game3'] }
     ];
 
     const login = document.getElementById('login');
