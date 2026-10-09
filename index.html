@@ -33,6 +33,8 @@
     .sheet-title { display:flex; align-items:center; gap:12px; padding:0 0 16px; }
     .sheet-title img { width:38px; height:38px; border-radius:8px; }
     .sheet-title strong { font-size:20px; font-weight:650; letter-spacing:-.4px; }
+    .larp-banner { display:flex; justify-content:space-between; gap:12px; margin:-4px 0 16px; padding:8px 12px; border:1px solid #cbdde9; border-radius:6px; background:#edf7fc; color:#356382; font-size:12px; }
+    .larp-banner b { color:#24608c; }
     .sheet-toolbar { display:flex; justify-content:space-between; align-items:center; gap:16px; padding-bottom:24px; color:#596778; }
     #portal #logout { margin:0; padding:7px 14px; border:1px solid #d0d8e1; border-radius:6px; background:white; color:#3a4b5e; white-space:nowrap; }
     #portal #logout:hover { background:#e9eef3; }
@@ -101,6 +103,7 @@
   </main>
   <section id="portal" hidden aria-label="ETAHNCORP game spreadsheet">
     <div class="sheet-title"><img src="etahncorp-logo.png" alt=""><strong>ETAHNCORP Archives</strong></div>
+    <div class="larp-banner"><span><b>L.A.R.P.</b> · Limited Access Retrieval Protocol</span><span id="larpStatus">SYSTEM READY</span></div>
     <div class="sheet-toolbar"><p id="welcome"></p><button id="logout" type="button">Sign out</button></div>
     <div class="search-bar"><div class="filter-row"><label for="gameSearch">Filter <input id="gameSearch" type="search" placeholder="File name, classification, or description" autocomplete="off"></label><select id="classFilter" aria-label="Filter by classification"><option value="">All classifications</option><option value="Game">Games</option><option value="Media">Media</option></select></div><p id="searchStatus" role="status"></p></div>
     <div class="sheet-grid">
@@ -192,7 +195,9 @@
     function openPreview(file) {
       clearInterval(retrievalTimer);
       document.getElementById('previewTitle').textContent = file.title;
-      document.getElementById('previewMeta').textContent = `${file.classification || 'Game'}  •  ${file.accessLevel}`;
+      const retrievalId = `LARP-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+      document.getElementById('previewMeta').textContent = `${file.classification || 'Game'}  •  ${file.accessLevel}  •  Retrieval ${retrievalId}`;
+      document.getElementById('larpStatus').textContent = 'RETRIEVING FILE';
       const body = document.getElementById('previewBody');
       body.replaceChildren();
       const loading = document.createElement('div');
@@ -209,6 +214,7 @@
         if (value >= 100) {
           clearInterval(retrievalTimer);
           showPreviewContents(file);
+          document.getElementById('larpStatus').textContent = 'SYSTEM READY';
         }
       }, 70);
     }
@@ -218,6 +224,10 @@
       const description = document.createElement('p');
       description.textContent = file.description;
       body.append(description);
+      const log = document.createElement('small');
+      log.textContent = `Retrieval complete · Clearance verified · ${new Date().toLocaleTimeString()}`;
+      log.style.cssText = 'display:block;color:#738394;margin:-8px 0 18px';
+      body.append(log);
       if ((file.classification || 'Game') !== 'Game' && !file.url.toLowerCase().endsWith('.ecorp')) {
         const viewer = file.fileType === 'mov' ? document.createElement('video') : document.createElement('iframe');
         viewer.className = 'file-viewer';
@@ -229,7 +239,7 @@
       play.href = file.url;
       play.hidden = (file.classification || 'Game') !== 'Game';
     }
-    document.getElementById('closePreview').addEventListener('click', () => { clearInterval(retrievalTimer); previewDialog.close(); });
+    document.getElementById('closePreview').addEventListener('click', () => { clearInterval(retrievalTimer); document.getElementById('larpStatus').textContent = 'SYSTEM READY'; previewDialog.close(); });
     function applyFilters() {
       const query = document.getElementById('gameSearch').value.trim().toLowerCase();
       const classification = document.getElementById('classFilter').value.toLowerCase();
