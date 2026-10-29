@@ -131,12 +131,22 @@
     <div class="sheet-footer">Game Register &nbsp; │ &nbsp; ETAHN CORPORATION</div>
   </section>
   <dialog id="previewDialog" class="preview-dialog"><div class="preview-card"><h2 id="previewTitle"></h2><div id="previewMeta" class="preview-meta"></div><div id="previewBody"></div><div class="preview-actions"><button id="closePreview" type="button">Close</button><a id="previewPlay" class="primary" target="_blank" rel="noopener noreferrer">Play</a></div></div></dialog>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
   <script>
-    const supabaseClient = window.supabase.createClient(
-      'https://yxcglvewptnqpehltgcn.supabase.co',
-      'sb_publishable_e2PZcrxrDZpL2Uv6ylYsqQ_oxthTc-o'
-    );
+    const firebaseConfig = {
+      apiKey: 'AIzaSyBxJ5Bzpy5I2G-fzx-ZTnVls1J8JS7Fk8Q',
+      authDomain: 'etahn-corporation.firebaseapp.com',
+      projectId: 'etahn-corporation',
+      storageBucket: 'etahn-corporation.firebasestorage.app',
+      messagingSenderId: '613565990480',
+      appId: '1:613565990480:web:395dedd5ca28675fd83355',
+      measurementId: 'G-ZRND2Q0X69'
+    };
+    firebase.initializeApp(firebaseConfig);
+    const firebaseAuth = firebase.auth();
+    const firestore = firebase.firestore();
     const home = document.getElementById('home');
     const terminal = document.getElementById('terminal');
     function showLogin() { home.hidden = true; terminal.hidden = false; document.getElementById('userId').focus(); }
@@ -296,18 +306,17 @@
       if (signingIn) return;
       const email = document.getElementById('userId').value.trim();
       const password = document.getElementById('password').value;
-      const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({ email, password });
-      if (authError) {
+      let authData;
+      try {
+        authData = await firebaseAuth.signInWithEmailAndPassword(email, password);
+      } catch (authError) {
         document.getElementById('error').textContent = 'Email or password not recognized.';
         return;
       }
-      const { data: user, error: profileError } = await supabaseClient
-        .from('profiles')
-        .select('display_name, access_level, status')
-        .eq('id', authData.user.id)
-        .single();
-      if (profileError || !user || user.status !== 'active') {
-        await supabaseClient.auth.signOut();
+      const profileSnapshot = await firestore.collection('profiles').doc(authData.user.uid).get();
+      const user = profileSnapshot.exists ? profileSnapshot.data() : null;
+      if (!user || user.status !== 'active') {
+        await firebaseAuth.signOut();
         document.getElementById('error').textContent = 'No active archive profile found for this account.';
         return;
       }
@@ -364,7 +373,7 @@
     });
 
     document.getElementById('logout').addEventListener('click', async () => {
-      await supabaseClient.auth.signOut();
+      await firebaseAuth.signOut();
       portal.hidden = true;
       document.getElementById('terminal').hidden = true;
       login.hidden = false;
