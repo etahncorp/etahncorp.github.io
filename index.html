@@ -82,13 +82,35 @@
     #loginForm input:focus-visible { box-shadow: 0 1px #555; }
     #error { color: #aaa; font-size: 13px; line-height: 1.5; }
     .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    #home { min-height:100vh; background:linear-gradient(145deg,#07131f 0%,#0b1d2c 55%,#102d3c 100%); color:#e8f3f7; font-family:'Segoe UI',Arial,sans-serif; }
+    .home-nav { display:flex; align-items:center; justify-content:space-between; padding:24px clamp(20px,6vw,84px); border-bottom:1px solid #ffffff18; }
+    .brand { display:flex; align-items:center; gap:12px; font-weight:700; letter-spacing:.08em; }
+    .brand img { width:36px; height:36px; border-radius:9px; }
+    .home-nav button,.hero button { border:1px solid #70c9db; border-radius:7px; padding:10px 17px; background:#70c9db; color:#07131f; font:600 14px 'Segoe UI',Arial,sans-serif; cursor:pointer; }
+    .home-nav button:hover,.hero button:hover { background:#a3e6ef; }
+    .hero { max-width:1120px; margin:0 auto; padding:clamp(80px,14vh,150px) clamp(20px,6vw,84px) 90px; }
+    .eyebrow { color:#70c9db; font-size:12px; font-weight:700; letter-spacing:.22em; text-transform:uppercase; }
+    .hero h1 { max-width:760px; margin:18px 0; font-size:clamp(42px,7vw,82px); line-height:.98; letter-spacing:-.05em; }
+    .hero p { max-width:560px; color:#b6ccd2; font-size:18px; line-height:1.6; margin:0 0 30px; }
+    .home-grid { max-width:1120px; margin:0 auto; padding:0 clamp(20px,6vw,84px) 70px; display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+    .home-card { padding:23px; border:1px solid #ffffff18; border-radius:12px; background:#ffffff08; }
+    .home-card strong { display:block; margin-bottom:8px; font-size:16px; }
+    .home-card p { color:#9fb8c0; font-size:14px; line-height:1.55; margin:0; }
+    .home-footer { padding:24px clamp(20px,6vw,84px); border-top:1px solid #ffffff18; color:#78939c; font-size:12px; }
+    @media(max-width:700px) { .home-grid { grid-template-columns:1fr; } .home-nav { padding-top:18px; padding-bottom:18px; } }
   </style>
 </head>
 <body>
-  <main id="terminal">
+  <section id="home" aria-label="ETAHNCORP home page">
+    <nav class="home-nav"><div class="brand"><img src="etahncorp-logo.png" alt=""><span>ETAHNCORP</span></div><button id="openLogin" type="button">Archive Login</button></nav>
+    <header class="hero"><div class="eyebrow">ETAHN CORPORATION · EST. 2025</div><h1>Ideas in motion.<br>Records in order.</h1><p>ETAHNCORP builds curious projects, playful experiments, and carefully organized archives for the people who make them.</p><button id="heroLogin" type="button">Enter the Archives</button></header>
+    <section class="home-grid" aria-label="Company highlights"><article class="home-card"><strong>Research &amp; development</strong><p>Small ideas become working prototypes, games, and experiments.</p></article><article class="home-card"><strong>Archive systems</strong><p>A private, access-controlled library for ETAHNCORP projects and files.</p></article><article class="home-card"><strong>Built for curiosity</strong><p>Explore the public face of the corporation, then sign in when you are cleared.</p></article></section>
+    <footer class="home-footer">© 2025 ETAHN CORPORATION · Independent creative archive</footer>
+  </section>
+  <main id="terminal" hidden>
     <section id="login">
       <form id="loginForm" aria-label="Sign in">
-        <input id="userId" aria-label="User ID" placeholder="ID" autocomplete="username" spellcheck="false" autocapitalize="none" enterkeyhint="next" required autofocus>
+        <input id="userId" aria-label="School email" placeholder="School email" type="email" autocomplete="username" spellcheck="false" autocapitalize="none" enterkeyhint="next" required autofocus>
         <input id="password" aria-label="Password" placeholder="Password" type="password" autocomplete="current-password" enterkeyhint="go" required>
         <button type="submit" class="visually-hidden" tabindex="-1">Sign in</button>
         <p id="error" role="alert"></p>
@@ -109,14 +131,25 @@
     <div class="sheet-footer">Game Register &nbsp; │ &nbsp; ETAHN CORPORATION</div>
   </section>
   <dialog id="previewDialog" class="preview-dialog"><div class="preview-card"><h2 id="previewTitle"></h2><div id="previewMeta" class="preview-meta"></div><div id="previewBody"></div><div class="preview-actions"><button id="closePreview" type="button">Close</button><a id="previewPlay" class="primary" target="_blank" rel="noopener noreferrer">Play</a></div></div></dialog>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
+    const supabaseClient = window.supabase.createClient(
+      'https://yxcglvewptnqpehltgcn.supabase.co',
+      'sb_publishable_e2PZcrxrDZpL2Uv6ylYsqQ_oxthTc-o'
+    );
+    const home = document.getElementById('home');
+    const terminal = document.getElementById('terminal');
+    function showLogin() { home.hidden = true; terminal.hidden = false; document.getElementById('userId').focus(); }
+    document.getElementById('openLogin').addEventListener('click', showLogin);
+    document.getElementById('heroLogin').addEventListener('click', showLogin);
     // EDIT THIS LIST: change the titles, descriptions, and game URLs.
     // URLs can be your own HTML files or full https:// links to games.
     const accessLevels = {
       1: 'General Access',
       2: 'Corporate Access',
       3: 'Quality Assurance',
-      4: 'Executive Access'
+      4: 'Executive Access',
+      5: 'Chief Executive Access'
     };
     const games = [
       { id: 'game1', title: 'Snake', level: 3, accessLevel: accessLevels[3], description: 'Eat, grow, and avoid the walls. Arrow keys or WASD.', url: 'game1.html' },
@@ -164,13 +197,6 @@
       ,{ id: 'are-we-there-yet', title: 'Are We There Yet?', level: 3, accessLevel: accessLevels[3], description: 'Driving adventure.', url: 'games/a/clarewethereyet.html' }
       ,{ id: 'assessment-examination', title: 'Assessment Examination', level: 3, accessLevel: accessLevels[3], description: 'Interactive examination game.', url: 'games/a/classesmentexaminationque.html' }
       ,{ id: 'chair-test', title: 'Chair Test', level: 3, accessLevel: accessLevels[3], classification: 'Media', description: 'A short chair video test file.', url: 'files/chair-1-1.mov', fileType: 'mov' }
-    ];
-
-    // EDIT THIS LIST: each person gets a username, pretend password,
-    // and a list of game IDs they can see. IDs/passwords are case-sensitive.
-    // This is NOT secure authentication: anyone can read this source code.
-    const users = [
-      { id: 'ethan', name: 'Ethan', clearance: 4, password: 'archive01', games: ['game1', 'game2', 'game3'] }
     ];
 
     const login = document.getElementById('login');
@@ -268,12 +294,21 @@
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
       if (signingIn) return;
-      const user = users.find((entry) =>
-        entry.id === document.getElementById('userId').value.trim() &&
-        entry.password === document.getElementById('password').value
-      );
-      if (!user) {
-        document.getElementById('error').textContent = 'ID or game password not recognized.';
+      const email = document.getElementById('userId').value.trim();
+      const password = document.getElementById('password').value;
+      const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({ email, password });
+      if (authError) {
+        document.getElementById('error').textContent = 'Email or password not recognized.';
+        return;
+      }
+      const { data: user, error: profileError } = await supabaseClient
+        .from('profiles')
+        .select('display_name, access_level, status')
+        .eq('id', authData.user.id)
+        .single();
+      if (profileError || !user || user.status !== 'active') {
+        await supabaseClient.auth.signOut();
+        document.getElementById('error').textContent = 'No active archive profile found for this account.';
         return;
       }
       document.getElementById('error').textContent = '';
@@ -286,11 +321,11 @@
       document.getElementById('classFilter').value = '';
       document.getElementById('searchStatus').textContent = '';
       records.replaceChildren();
-      const welcomeLevels = { 1: 'General Access', 2: 'Corporate Team', 3: 'QA Team', 4: 'Executive' };
-      const accountLevel = user.clearance ?? Math.max(1, ...games.filter((game) => user.games.includes(game.id)).map((game) => game.level));
-      document.getElementById('welcome').textContent = `Welcome, ${user.name || user.id}! Access Level - ${welcomeLevels[accountLevel]}`;
+      const welcomeLevels = { 0: 'Unauthorized', 1: 'General Access', 2: 'Corporate Team', 3: 'QA Team', 4: 'Executive', 5: 'Chief Executive' };
+      const accountLevel = Number(user.access_level) || 0;
+      document.getElementById('welcome').textContent = `Welcome, ${user.display_name}! Access Level - ${welcomeLevels[accountLevel] || 'Unauthorized'}`;
       games.forEach((game, index) => {
-        const allowed = user.clearance != null ? game.level <= user.clearance : user.games.includes(game.id);
+        const allowed = game.level <= accountLevel;
         const row = document.createElement('tr');
         row.dataset.classification = (game.classification || 'Game').toLowerCase();
         if (!allowed) row.className = 'locked';
@@ -328,7 +363,8 @@
       document.getElementById('logout').focus();
     });
 
-    document.getElementById('logout').addEventListener('click', () => {
+    document.getElementById('logout').addEventListener('click', async () => {
+      await supabaseClient.auth.signOut();
       portal.hidden = true;
       document.getElementById('terminal').hidden = true;
       login.hidden = false;
